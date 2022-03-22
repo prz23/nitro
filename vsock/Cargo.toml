@@ -11,5 +11,4 @@ clap = "2.33"
 log = "0.4"
 nix = "0.15"
 byteorder = "1.3"
-
-[workspace]
+reqwest = { version ="*" , features = ["blocking"]}
