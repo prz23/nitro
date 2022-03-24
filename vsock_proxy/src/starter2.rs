@@ -1,6 +1,6 @@
 // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
-#![deny(warnings)]
+//#![deny(warnings)]
 
 /// Contains code for Proxy, a library used for translating vsock traffic to
 /// TCP traffic
@@ -12,11 +12,11 @@ use nix::sys::select::{select, FdSet};
 use nix::sys::socket::SockType;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::net::{IpAddr, SocketAddr, TcpStream};
+use std::net::{IpAddr, SocketAddr, TcpStream, TcpListener};
 use std::os::unix::io::AsRawFd;
 use threadpool::ThreadPool;
 use vsock::SockAddr;
-use vsock::VsockListener;
+use vsock::{VsockListener, VsockStream};
 use yaml_rust::YamlLoader;
 
 const BUFF_SIZE: usize = 8192;
@@ -47,7 +47,7 @@ pub fn check_allowlist(
             .ok_or("No allowlist field")?;
 
         // Obtain the remote server's IP address.
-        let mut addrs = Proxy::parse_addr(remote_host, only_4, only_6)
+        let mut addrs = Proxy2::parse_addr(remote_host, only_4, only_6)
             .map_err(|err| format!("Could not parse remote address: {}", err))?;
         let remote_addr = *addrs.get(0).ok_or("No IP address found")?;
 
@@ -70,7 +70,7 @@ pub fn check_allowlist(
             }
 
             // If hostname matching failed, attempt to match against IPs.
-            addrs = Proxy::parse_addr(addr, only_4, only_6)?;
+            addrs = Proxy2::parse_addr(addr, only_4, only_6)?;
             for addr in addrs.into_iter() {
                 if addr == remote_addr {
                     info!("Matched with host IP \"{}\" and port \"{}\"", addr, port);
@@ -83,7 +83,7 @@ pub fn check_allowlist(
 }
 
 /// Configuration parameters for port listening and remote destination
-pub struct Proxy {
+pub struct Proxy2 {
     local_port: u32,
     remote_addr: IpAddr,
     remote_port: u16,
@@ -91,7 +91,7 @@ pub struct Proxy {
     sock_type: SockType,
 }
 
-impl Proxy {
+impl Proxy2 {
     pub fn new(
         local_port: u32,
         remote_host: &str,
@@ -114,7 +114,7 @@ impl Proxy {
             "Using IP \"{:?}\" for the given server \"{}\"",
             remote_addr, remote_host
         );
-        Ok(Proxy {
+        Ok(Proxy2 {
             local_port,
             remote_addr,
             remote_port,
@@ -161,12 +161,11 @@ impl Proxy {
 
     /// Creates a listening socket
     /// Returns the file descriptor for it or the appropriate error
-    pub fn sock_listen(&self) -> VsockProxyResult<VsockListener> {
-        const VMADDR_CID_ANY: u32 = 0xFFFFFFFF;
-        let sockaddr = SockAddr::new_vsock(VMADDR_CID_ANY, self.local_port);
-        let listener = VsockListener::bind(&sockaddr)
+    pub fn sock_listen(&self) -> VsockProxyResult<TcpListener> {
+        let sockaddr = SocketAddr::new(self.remote_addr, self.remote_port);
+        let listener = TcpListener::bind(&sockaddr)
             .map_err(|_| format!("Could not bind to {:?}", sockaddr))?;
-        println!("Bound to {:?}", sockaddr);
+        info!("Bound to {:?}", sockaddr);
 
         Ok(listener)
     }
@@ -174,17 +173,17 @@ impl Proxy {
     /// Accepts an incoming connection coming on listener and handles it on a
     /// different thread
     /// Returns the handle for the new thread or the appropriate error
-    pub fn sock_accept(&self, listener: &VsockListener) -> VsockProxyResult<()> {
+    pub fn sock_accept(&self, listener: &TcpListener) -> VsockProxyResult<()> {
         let (mut client, client_addr) = listener
             .accept()
             .map_err(|_| "Could not accept connection")?;
         info!("Accepted connection on {:?}", client_addr);
 
-        let sockaddr = SocketAddr::new(self.remote_addr, self.remote_port);
+        let sockaddr = SockAddr::new_vsock(VSOCK_PROXY_CID, self.local_port);
         let sock_type = self.sock_type;
         self.pool.execute(move || {
             let mut server = match sock_type {
-                SockType::Stream => TcpStream::connect(sockaddr)
+                SockType::Stream => VsockStream::connect(&sockaddr)
                     .map_err(|_| format!("Could not connect to {:?}", sockaddr)),
                 _ => Err("Socket type not implemented".to_string()),
             }

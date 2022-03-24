@@ -11,6 +11,7 @@ use env_logger::init;
 use log::info;
 
 use vsock_proxy::starter::{Proxy, VsockProxyResult};
+use vsock_proxy::starter2::Proxy2;
 
 fn main() -> VsockProxyResult<()> {
     init();
@@ -65,6 +66,11 @@ fn main() -> VsockProxyResult<()> {
                 .takes_value(true)
                 .default_value("/etc/nitro_enclaves/vsock-proxy.yaml"),
         )
+        .arg(
+        Arg::with_name("proxy_type")
+            .help("1 enclave or 2 instance")
+            .required(true),
+        )
         .get_matches();
 
     let local_port = matches
@@ -98,26 +104,58 @@ fn main() -> VsockProxyResult<()> {
         .parse::<usize>()
         .map_err(|_| "Number of workers is not valid")?;
 
+    let proxy_type = matches
+        .value_of("proxy_type")
+        // This argument is required, so clap ensures it's available
+        .unwrap();
+    let proxy_type = proxy_type
+        .parse::<u16>()
+        .map_err(|_| "Remote port is not valid")?;
+
     let config_file = matches.value_of("config_file");
 
-    let proxy = Proxy::new(
-        local_port,
-        remote_addr,
-        remote_port,
-        num_workers,
-        config_file,
-        only_4,
-        only_6,
-    )
-    .map_err(|err| format!("Could not create proxy: {}", err))?;
+    if proxy_type == 1u16{
 
-    let listener = proxy
-        .sock_listen()
-        .map_err(|err| format!("Could not listen for connections: {}", err))?;
-    info!("Proxy is now in listening state");
-    loop {
-        proxy
-            .sock_accept(&listener)
-            .map_err(|err| format!("Could not accept connection: {}", err))?;
+        let proxy = Proxy::new(
+            local_port,
+            remote_addr,
+            remote_port,
+            num_workers,
+            config_file,
+            only_4,
+            only_6,
+        ).map_err(|err| format!("Could not create proxy: {}", err))?;
+
+        let listener = proxy
+            .sock_listen()
+            .map_err(|err| format!("Could not listen for connections: {}", err))?;
+        info!("Proxy is now in listening state");
+        loop {
+            proxy
+                .sock_accept(&listener)
+                .map_err(|err| format!("Could not accept connection: {}", err))?;
+        }
+
+    }else {
+        let proxy = Proxy2::new(
+            local_port,
+            remote_addr,
+            remote_port,
+            num_workers,
+            config_file,
+            only_4,
+            only_6,
+        ).map_err(|err| format!("Could not create proxy: {}", err))?;
+
+        let listener = proxy
+            .sock_listen()
+            .map_err(|err| format!("Could not listen for connections: {}", err))?;
+        info!("Proxy is now in listening state");
+        loop {
+            proxy
+                .sock_accept(&listener)
+                .map_err(|err| format!("Could not accept connection: {}", err))?;
+        }
     }
+
 }

@@ -63,6 +63,7 @@ fn test_tcp_connection() {
 
     // Start proxy in a different thread
     let ret = proxy.sock_listen();
+    println!("sock_listen");
     let listener = ret.expect("proxy listen");
     let proxy_handle = thread::spawn(move || {
         tx.send(true).expect("proxy send event");
@@ -86,7 +87,31 @@ fn test_tcp_connection() {
         assert_eq!(msg, "server2client");
     });
 
+    println!("asd");
     server_handle.join().expect("Server panicked");
     proxy_handle.join().expect("Proxy panicked");
+    client_handle.join().expect("Client panicked");
+}
+
+#[test]
+fn test_vsock_connection() {
+    use vsock::VsockListener;
+
+    let (tx, rx) = mpsc::channel();
+
+    let server_handle = thread::spawn(move || {
+        let sockaddr = SockAddr::new_vsock(vsock_proxy::starter::VSOCK_PROXY_CID, 8000);
+        VsockListener::bind(&sockaddr).unwrap();
+        tx.send(true).unwrap();
+    });
+
+    let _ret = rx.recv().unwrap();
+
+    let client_handle = thread::spawn(move || {
+        let sockaddr = SockAddr::new_vsock(vsock_proxy::starter::VSOCK_PROXY_CID, 8000);
+        VsockStream::connect(&sockaddr).unwrap();
+    });
+
+    server_handle.join().expect("Server panicked");
     client_handle.join().expect("Client panicked");
 }

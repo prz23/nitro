@@ -17,6 +17,6 @@ yaml-rust = "0.4.3"
 threadpool = "1.7.1"
 vsock = "0.2"
 
-[dev-dependencies]
+#[dev-dependencies]
 rand = "0.7.0"
 tempfile = "3.1.0"
