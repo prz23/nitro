@@ -2,8 +2,11 @@ wget http://musl.libc.org/releases/musl-1.2.2.tar.gz
 
 tar -xvzf musl-1.2.2.tar.gz
 
-cd musl-1.2.2.tar.gz
+cd musl-1.2.2
 
 ./configure && make install
 
 export  PATH="$PATH:/usr/local/musl/bin"
+
+
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/musl/lib"
