@@ -2,5 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 FROM alpine:latest
-COPY server-test .
-CMD ["./server-test","5"]
+COPY vsock-sample .
+CMD ["./vsock-sample", "client", "--cid", "3",  "--port", "5005"]
+

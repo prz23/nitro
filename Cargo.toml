@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 rocket = "*"
-#vsock-sample = { path = "./vsock" }
+vsock-sample = { path = "./rs" }
 vsock-proxy = { path = "./vsock_proxy"}
 tempfile = "3.1.0"
 clap = "2.33"

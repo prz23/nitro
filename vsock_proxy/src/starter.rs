@@ -1,6 +1,6 @@
 // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
-#![deny(warnings)]
+//#![deny(warnings)]
 
 /// Contains code for Proxy, a library used for translating vsock traffic to
 /// TCP traffic
@@ -10,6 +10,13 @@ use idna::domain_to_ascii;
 use log::info;
 use nix::sys::select::{select, FdSet};
 use nix::sys::socket::SockType;
+
+use nix::sys::socket::listen as listen_vsock;
+use nix::sys::socket::{accept, bind, connect, shutdown, socket};
+use nix::sys::socket::{AddressFamily, Shutdown, SockFlag, SockAddr as NixSockAddr};
+use nix::unistd::close;
+use std::os::unix::io::{RawFd};
+
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpStream};
@@ -18,6 +25,10 @@ use threadpool::ThreadPool;
 use vsock::SockAddr;
 use vsock::VsockListener;
 use yaml_rust::YamlLoader;
+use crate::vsock_helper::VsockListener as HVsockListener;
+use crate::vsock_helper::VsockStream as HVsockStream;
+
+use std::net::{Ipv4Addr};
 
 const BUFF_SIZE: usize = 8192;
 pub const VSOCK_PROXY_CID: u32 = 3;
@@ -105,11 +116,12 @@ impl Proxy {
             return Err("Number of workers must not be 0".to_string());
         }
         info!("Checking allowlist configuration");
-        let remote_addr = check_allowlist(remote_host, remote_port, config_file, only_4, only_6)
-            .map_err(|err| format!("Error at checking the allowlist: {}", err))?;
+        // let remote_addr = check_allowlist(remote_host, remote_port, config_file, only_4, only_6)
+        //     .map_err(|err| format!("Error at checking the allowlist: {}", err))?;
         let pool = ThreadPool::new(num_workers);
         let sock_type = SockType::Stream;
 
+        let remote_addr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
         info!(
             "Using IP \"{:?}\" for the given server \"{}\"",
             remote_addr, remote_host
@@ -214,6 +226,70 @@ impl Proxy {
 
         Ok(())
     }
+
+    pub fn sock_listen_nix(&self) -> VsockProxyResult<HVsockListener> {
+        const VMADDR_CID_ANY: u32 = 0xFFFFFFFF;
+        const BACKLOG: usize = 128;
+
+
+        let socket_fd = socket(
+            AddressFamily::Vsock,
+            SockType::Stream,
+            SockFlag::empty(),
+            None,
+        )
+            .map_err(|err| format!("Create socket failed: {:?}", err))?;
+
+        let sockaddr = NixSockAddr::new_vsock(VMADDR_CID_ANY, self.local_port);
+
+        let listener = HVsockListener::bind(&sockaddr).map_err(|err|err)?;
+        println!("Bound to {:?}", sockaddr);
+
+        Ok(listener)
+    }
+
+    pub fn sock_accept_nix(&self, listener: &HVsockListener) -> VsockProxyResult<()> {
+
+        let mut client = listener
+            .accept()
+            .map_err(|_| "Could not accept connection")?;
+        info!("Accepted connection on ");
+
+        let sockaddr = SocketAddr::new(self.remote_addr, self.remote_port);
+        let sock_type = self.sock_type;
+        self.pool.execute(move || {
+            let mut server = match sock_type {
+                SockType::Stream => TcpStream::connect(sockaddr)
+                    .map_err(|_| format!("Could not connect to {:?}", sockaddr)),
+                _ => Err("Socket type not implemented".to_string()),
+            }
+                .expect("Could not create connection");
+            info!("Connected client from {:?} to {:?}", "client_addr", sockaddr);
+
+            let client_socket = client.as_raw_fd();
+            let server_socket = server.as_raw_fd();
+
+            let mut disconnected = false;
+            while !disconnected {
+                let mut set = FdSet::new();
+                set.insert(client_socket);
+                set.insert(server_socket);
+
+                select(None, Some(&mut set), None, None, None).expect("select");
+
+                if set.contains(client_socket) {
+                    disconnected = transfer(&mut client, &mut server);
+                }
+                if set.contains(server_socket) {
+                    disconnected = transfer(&mut server, &mut client);
+                }
+            }
+            info!("Client on {:?} disconnected", "client_addr");
+        });
+
+        Ok(())
+    }
+
 }
 
 /// Transfers a chunck of maximum 4KB from src to dst
