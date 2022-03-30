@@ -20,7 +20,7 @@ use vsock::{VsockListener, VsockStream};
 use yaml_rust::YamlLoader;
 use crate::vsock_helper::VsockStream as HVsockStream;
 
-const BUFF_SIZE: usize = 8192;
+const BUFF_SIZE: usize = 81920;
 pub const VSOCK_PROXY_CID: u32 = 3;
 pub const VSOCK_PROXY_PORT: u32 = 8000;
 
