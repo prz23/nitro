@@ -9,7 +9,7 @@ use dns_lookup::lookup_host;
 use idna::domain_to_ascii;
 use log::info;
 use nix::sys::select::{select, FdSet};
-use nix::sys::socket::SockType;
+use nix::sys::socket::{SockType, SockAddr as NixSockAddr};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpStream, TcpListener};
@@ -18,6 +18,7 @@ use threadpool::ThreadPool;
 use vsock::SockAddr;
 use vsock::{VsockListener, VsockStream};
 use yaml_rust::YamlLoader;
+use crate::vsock_helper::VsockStream as HVsockStream;
 
 const BUFF_SIZE: usize = 8192;
 pub const VSOCK_PROXY_CID: u32 = 3;
@@ -84,6 +85,7 @@ pub fn check_allowlist(
 
 /// Configuration parameters for port listening and remote destination
 pub struct Proxy2 {
+    local_cid: u32,
     local_port: u32,
     remote_addr: IpAddr,
     remote_port: u16,
@@ -93,6 +95,7 @@ pub struct Proxy2 {
 
 impl Proxy2 {
     pub fn new(
+        local_cid:u32,
         local_port: u32,
         remote_host: &str,
         remote_port: u16,
@@ -115,6 +118,7 @@ impl Proxy2 {
             remote_addr, remote_host
         );
         Ok(Proxy2 {
+            local_cid,
             local_port,
             remote_addr,
             remote_port,
@@ -165,7 +169,7 @@ impl Proxy2 {
         let sockaddr = SocketAddr::new(self.remote_addr, self.remote_port);
         let listener = TcpListener::bind(&sockaddr)
             .map_err(|_| format!("Could not bind to {:?}", sockaddr))?;
-        info!("Bound to {:?}", sockaddr);
+        println!("Bound to {:?}", sockaddr);
 
         Ok(listener)
     }
@@ -177,18 +181,19 @@ impl Proxy2 {
         let (mut client, client_addr) = listener
             .accept()
             .map_err(|_| "Could not accept connection")?;
-        info!("Accepted connection on {:?}", client_addr);
+        println!("Accepted connection on {:?}", client_addr);
 
-        let sockaddr = SockAddr::new_vsock(VSOCK_PROXY_CID, self.local_port);
+        let sockaddr = NixSockAddr::new_vsock(self.local_cid, self.local_port);
+
         let sock_type = self.sock_type;
         self.pool.execute(move || {
             let mut server = match sock_type {
-                SockType::Stream => VsockStream::connect(&sockaddr)
+                SockType::Stream => HVsockStream::connect(&sockaddr)
                     .map_err(|_| format!("Could not connect to {:?}", sockaddr)),
                 _ => Err("Socket type not implemented".to_string()),
             }
             .expect("Could not create connection");
-            info!("Connected client from {:?} to {:?}", client_addr, sockaddr);
+            println!("Connected client from {:?} to {:?}", client_addr, sockaddr);
 
             let client_socket = client.as_raw_fd();
             let server_socket = server.as_raw_fd();
@@ -208,7 +213,7 @@ impl Proxy2 {
                     disconnected = transfer(&mut server, &mut client);
                 }
             }
-            info!("Client on {:?} disconnected", client_addr);
+            println!("Client on {:?} disconnected", client_addr);
         });
 
         Ok(())

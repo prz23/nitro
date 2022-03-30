@@ -260,7 +260,7 @@ impl Proxy {
         self.pool.execute(move || {
             let mut server = match sock_type {
                 SockType::Stream => TcpStream::connect(sockaddr)
-                    .map_err(|_| format!("Could not connect to {:?}", sockaddr)),
+                    .map_err(|e| format!("Could not connect to {:?} {:?}", sockaddr,e)),
                 _ => Err("Socket type not implemented".to_string()),
             }
                 .expect("Could not create connection");
