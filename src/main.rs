@@ -9,6 +9,7 @@ use tempfile::NamedTempFile;
 use clap::{App, AppSettings, Arg};
 use vsock_sample::server_port;
 use std::thread::JoinHandle;
+use key_server_fake::start_fake_key_server;
 
 #[get("/")]
 fn hello() -> &'static str {
