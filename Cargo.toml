@@ -11,4 +11,4 @@ vsock-sample = { path = "./rs" }
 vsock-proxy = { path = "./vsock_proxy"}
 tempfile = "3.1.0"
 clap = "2.33"
-#key-server-fake = { git = "https://github.com/prz23/key-server-fake" }
+key-server-fake = { git = "https://github.com/prz23/key-server-fake" }
