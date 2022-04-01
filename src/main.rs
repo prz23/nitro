@@ -9,7 +9,7 @@ use tempfile::NamedTempFile;
 use clap::{App, AppSettings, Arg};
 use vsock_sample::server_port;
 use std::thread::JoinHandle;
-use key_server_fake::start_fake_key_server;
+//use key_server_fake::start_fake_key_server;
 
 #[get("/")]
 fn hello() -> &'static str {
@@ -66,17 +66,18 @@ fn main() {
         forward_server_nix(9000,"http://127.0.0.1:9000".to_string());
         start_normal_server();
     }else if proxy_type == 9u16 {
-        std::thread::spawn(move ||{
+        std::thread::spawn(move || {
             instance_server(cid as u32);
         });
         std::thread::sleep(std::time::Duration::from_secs(1));
         http_client();
-    }else if proxy_type == 10u16 {
-        start_fake_key_server(9000);
-    }else if proxy_type == 11u16 {
-        forward_server_nix(9000,"http://127.0.0.1:9000".to_string());
-        start_fake_key_server(9000);
     }
+    // }else if proxy_type == 10u16 {
+    //     start_fake_key_server(9000);
+    // }else if proxy_type == 11u16 {
+    //     forward_server_nix(9000,"http://127.0.0.1:9000".to_string());
+    //     start_fake_key_server(9000);
+    // }
 }
 
 fn forward_server(vsock_port:u32,enclave_url:String){
