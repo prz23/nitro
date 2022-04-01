@@ -71,6 +71,11 @@ fn main() {
         });
         std::thread::sleep(std::time::Duration::from_secs(1));
         http_client();
+    }else if proxy_type == 10u16 {
+        start_fake_key_server(9000);
+    }else if proxy_type == 11u16 {
+        forward_server_nix(9000,"http://127.0.0.1:9000".to_string());
+        start_fake_key_server(9000);
     }
 }
 

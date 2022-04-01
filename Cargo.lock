@@ -560,7 +560,7 @@ dependencies = [
 [[package]]
 name = "key-server-fake"
 version = "0.1.0"
-source = "git+https://github.com/prz23/key-server-fake#43391315a7786ce82ae54d3853b25698668701ea"
+source = "git+https://github.com/prz23/key-server-fake#fd18252e18721a067cdf2e550807b1ed8d8d5975"
 dependencies = [
  "env_logger 0.9.0",
  "hex",
