@@ -159,7 +159,9 @@ fn start_normal_server(){
             println!("server_recv {:?}", buf);
 
             // Write response
-            stream.write_all(b"server2client").expect("server write");
+            let response =
+                b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello world from rustls tlsserver\r\n";
+            stream.write_all(response).expect("server write");
         }
     });
     handle.join().unwrap();
