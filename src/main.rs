@@ -225,7 +225,7 @@ pub fn tls_http_client(){
 
     let uri: Uri = "https://127.0.0.1:9000".parse().unwrap();
     let host = uri.host().unwrap();
-    let dns_name = webpki::DNSNameRef::try_from_ascii_str(host).unwrap();
+    let dns_name = webpki::DNSNameRef::try_from_ascii_str("baidu.com").unwrap();
     let body_string = "test".to_string();
 
     let sess = rustls::ClientSession::new(&Arc::new(make_config()), dns_name);
