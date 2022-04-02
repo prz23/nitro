@@ -443,6 +443,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "http_req"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1dab1fb99f5163b9b25805e4c191ea9425ae311442688bfe03c97e8a2ba66e9d"
+dependencies = [
+ "rustls",
+ "unicase 2.6.0",
+ "webpki 0.21.4",
+ "webpki-roots",
+]
+
+[[package]]
 name = "httparse"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -478,7 +490,7 @@ dependencies = [
  "time",
  "traitobject",
  "typeable",
- "unicase",
+ "unicase 1.4.2",
  "url",
 ]
 
@@ -1075,11 +1087,14 @@ name = "server-test"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "http_req",
  "key-server-fake",
  "rocket",
+ "rustls",
  "tempfile",
  "vsock-proxy",
  "vsock-sample",
+ "webpki 0.21.4",
 ]
 
 [[package]]
@@ -1263,6 +1278,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f4765f83163b74f957c797ad9253caf97f103fb064d3999aea9568d09fc8a33"
 dependencies = [
  "version_check 0.1.5",
+]
+
+[[package]]
+name = "unicase"
+version = "2.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50f37be617794602aabbeee0be4f259dc1778fabe05e2d67ee8f79326d5cb4f6"
+dependencies = [
+ "version_check 0.9.4",
 ]
 
 [[package]]
@@ -1480,6 +1504,15 @@ checksum = "f095d78192e208183081cc07bc5515ef55216397af48b873e5edcd72637fa1bd"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aabe153544e473b775453675851ecc86863d2a81d786d741f6b76778f2a48940"
+dependencies = [
+ "webpki 0.21.4",
 ]
 
 [[package]]

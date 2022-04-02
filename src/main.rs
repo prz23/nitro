@@ -10,6 +10,8 @@ use clap::{App, AppSettings, Arg};
 use vsock_sample::server_port;
 use std::thread::JoinHandle;
 use key_server_fake::start_fake_key_server;
+use http_req;
+use std::sync::Arc;
 
 #[get("/")]
 fn hello() -> &'static str {
@@ -76,6 +78,12 @@ fn main() {
     }else if proxy_type == 11u16 {
         forward_server_nix(9000,"http://127.0.0.1:9000".to_string());
         start_fake_key_server(9000);
+    }else if proxy_type == 12u16 {
+        std::thread::spawn(move || {
+            instance_server(cid as u32);
+        });
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        tls_http_client();
     }
 }
 
@@ -152,7 +160,6 @@ fn start_normal_server(){
             // Read request
             let mut buf = [0; 19];
             //let mut buf = Vec::new();
-
             stream.read(&mut buf).expect("server read");
             // let msg = str::from_utf8(&buf).expect("from_utf8");
             //assert_eq!(msg, "client2server");
@@ -208,4 +215,64 @@ pub fn http_client(){
         println!("client_recv {:?}",buf);
     });
     handleb.join().unwrap();
+}
+
+pub fn tls_http_client(){
+    use http_req::request::{Method, Request};
+    use http_req::uri::Uri;
+    use rustls;
+    use webpki;
+
+    let uri: Uri = "https://127.0.0.1:9000".parse().unwrap();
+    let host = uri.host().unwrap();
+    let dns_name = webpki::DNSNameRef::try_from_ascii_str(host).unwrap();
+    let body_string = "test".to_string();
+
+    let sess = rustls::ClientSession::new(&Arc::new(make_config()), dns_name);
+    let conn = std::net::TcpStream::connect((host, uri.corr_port())).unwrap();
+    let mut stream = rustls::StreamOwned::new(sess, conn);
+
+    let mut writer = Vec::new();
+
+    let res = http_req::request::RequestBuilder::new(&uri)
+        .method(Method::POST)
+        .header("Content-Type", "application/json")
+        .header("Content-Length", &body_string.as_bytes().len())
+        .body(&body_string.as_bytes())
+        .send(&mut stream, &mut writer);
+
+    match res {
+        Ok(_) => {
+            match String::from_utf8(writer) {
+                Ok(res) => println!("get tls response {:?}",res),
+                Err(e) => println!("get tls response fail {:?}",e),
+            };
+        }
+        Err(e) => println!("tls req fail {:?}",e),
+    }
+
+}
+
+
+fn make_config() -> rustls::ClientConfig {
+    let mut config = rustls::ClientConfig::new();
+    config
+        .dangerous()
+        .set_certificate_verifier(Arc::new(ServerAuth::default()));
+    config
+}
+
+#[derive(Default)]
+pub struct ServerAuth;
+
+impl rustls::ServerCertVerifier for ServerAuth {
+    fn verify_server_cert(
+        &self,
+        _roots: &rustls::RootCertStore,
+        _certs: &[rustls::Certificate],
+        _hostname: webpki::DNSNameRef,
+        _ocsp: &[u8],
+    ) -> Result<rustls::ServerCertVerified, rustls::TLSError> {
+        Ok(rustls::ServerCertVerified::assertion())
+    }
 }
