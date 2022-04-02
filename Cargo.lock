@@ -713,7 +713,9 @@ version = "0.1.0"
 dependencies = [
  "nsm-driver",
  "nsm-io",
+ "serde",
  "serde_bytes",
+ "serde_cbor",
 ]
 
 [[package]]
