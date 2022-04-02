@@ -12,6 +12,7 @@ use std::thread::JoinHandle;
 use key_server_fake::start_fake_key_server;
 use http_req;
 use std::sync::Arc;
+use nitro_ra::get_remote_attestation;
 
 #[get("/")]
 fn hello() -> &'static str {
@@ -84,6 +85,8 @@ fn main() {
         });
         std::thread::sleep(std::time::Duration::from_secs(1));
         tls_http_client();
+    }else if proxy_type == 13u16 {
+        get_remote_attestation();
     }
 }
 

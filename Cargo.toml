@@ -15,3 +15,4 @@ key-server-fake = { git = "https://github.com/prz23/key-server-fake" }
 http_req = { version = "0.7.2", default-features = false, features = ["rust-tls"] }
 rustls = { version = "0.19", features = ["dangerous_configuration"] }
 webpki = "0.21"
+nitro-ra = { path = "./nitro-ra" }
