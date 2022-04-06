@@ -1,4 +1,7 @@
-use nsm_io::{Request, Response,AttestationDoc};
+mod tls;
+pub use tls::{ring_key_gen_pcks_8,gen_ecc_cert};
+
+use nsm_io::{Request, Response, AttestationDoc};
 use serde_bytes::ByteBuf;
 
 use serde::{Deserialize, Serialize};
@@ -11,7 +14,7 @@ use base64;
 use std::io::BufReader;
 use std::time::SystemTime;
 
-use nitro_enclave_attestation_document;
+// use nitro_enclave_attestation_document;
 
 pub fn get_remote_attestation() -> Response{
     let nsm_fd = nsm_driver::nsm_init();

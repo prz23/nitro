@@ -13,7 +13,12 @@ webpki = "0.21"
 base64 = "0.9.2"
 rustls = { version = "0.19", features = ["dangerous_configuration"] }
 #aws-nitro-enclaves-cose = { git = "https://github.com/awslabs/aws-nitro-enclaves-cose" }
-nitro-enclave-attestation-document = { git = "https://github.com/prz23/nitro-enclave-attestation-document" }
+
+ring = "0.16.20"
+chrono  = "*"
+yasna   = { git = "https://github.com/sgx-test/yasna.rs", features = ["bit-vec", "num-bigint", "chrono"] }
+bit-vec = "*"
+num-bigint = { version = "0.4.2" }
 
 [dependencies.nsm-driver]
 git = "https://github.com/aws/aws-nitro-enclaves-nsm-api.git"
