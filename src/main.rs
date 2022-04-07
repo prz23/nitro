@@ -283,6 +283,9 @@ impl rustls::ServerCertVerifier for ServerAuth {
         _hostname: webpki::DNSNameRef,
         _ocsp: &[u8],
     ) -> Result<rustls::ServerCertVerified, rustls::TLSError> {
+        let to_verify = nitro_ra::parse_payload_from_cert(&_certs[0].0);
+        pub const CA : &[u8] = include_bytes!("./root.pem");
+        let attestation_document = nitro_ra::AttestationDocument::authenticate(&to_verify,CA).unwrap();
         Ok(rustls::ServerCertVerified::assertion())
     }
 }
