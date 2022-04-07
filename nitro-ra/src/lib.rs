@@ -1,5 +1,7 @@
 mod tls;
-pub use tls::{ring_key_gen_pcks_8,gen_ecc_cert};
+mod nsm;
+
+pub use tls::{ring_key_gen_pcks_8, gen_ecc_cert, create_cert_and_prikey};
 
 use nsm_io::{Request, Response, AttestationDoc};
 use serde_bytes::ByteBuf;

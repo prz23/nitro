@@ -23,11 +23,11 @@ pub fn ring_key_gen_pcks_8() -> (signature::EcdsaKeyPair,Vec<u8>){
     (res,key_pair.as_ref().to_vec())
 }
 
-pub fn gen_ecc_cert(payload: String,
-                    prv_k: signature::EcdsaKeyPair , key_pair: Vec<u8>) -> Result<Vec<u8>, String> {
+pub fn gen_ecc_cert(payload: Vec<u8>,
+                    keypair: signature::EcdsaKeyPair, pubkey: Vec<u8>) -> Result<Vec<u8>, String> {
     // Generate public key bytes since both DER will use it
     let mut pub_key_bytes: Vec<u8> = Vec::with_capacity(0);
-    pub_key_bytes.extend_from_slice(&key_pair);
+    pub_key_bytes.extend_from_slice(&pubkey);
     println!("==pub_key_bytes=={:?}",pub_key_bytes);
     // Generate Certificate DER
     let cert_der = yasna::construct_der(|writer| {
@@ -86,7 +86,7 @@ pub fn gen_ecc_cert(payload: String,
                     writer.write_sequence(|writer| {
                         writer.next().write_sequence(|writer| {
                             writer.next().write_oid(&ObjectIdentifier::from_slice(&[2,16,840,1,113730,1,13]));
-                            writer.next().write_bytes(&payload.into_bytes());
+                            writer.next().write_bytes(&payload);
                         });
                     });
                 });
@@ -100,7 +100,7 @@ pub fn gen_ecc_cert(payload: String,
                 let tbs = &writer.buf[4..];
                 // ecc_handle.ecdsa_sign_slice(tbs, &prv_k).unwrap()
                 let rng = rand::SystemRandom::new();
-                prv_k.sign(&rng,&tbs.to_vec()).unwrap().as_ref().to_vec()
+                keypair.sign(&rng, &tbs.to_vec()).unwrap().as_ref().to_vec()
             };
             let sig_der = yasna::construct_der(|writer| {
                 writer.write_sequence(|writer| {
@@ -157,11 +157,26 @@ pub fn parse_payload_from_cert(cert_der: &[u8]) -> Vec<u8> {
 
 }
 
+pub fn create_cert_and_prikey() -> Result<(Vec<rustls::Certificate>,rustls::PrivateKey),String>{
+
+    let  (key_pair, key_pair_doc) = ring_key_gen_pcks_8();
+    let pub_key = key_pair.public_key().as_ref().to_vec();
+
+    let payload = crate::nsm::get_remote_attestation_document().unwrap();
+    let cert_der = gen_ecc_cert(payload, key_pair, pub_key.clone()).unwrap();
+
+    let mut certs = Vec::new();
+    certs.push(rustls::Certificate(cert_der));
+    let privkey = rustls::PrivateKey(key_pair_doc);
+    Ok((certs,privkey))
+}
+
+
 #[test]
 fn test(){
     let  (key_pair, _key_pair_doc) = ring_key_gen_pcks_8();
     let pub_key = key_pair.public_key().as_ref().to_vec();
-    let payload = "asdfsdfasdfsdfsf_test".to_string();
+    let payload = "asdfsdfasdfsdfsf_test".into_bytes();
 
     let cert_der= match gen_ecc_cert(payload.clone(), key_pair, pub_key.clone()) {
         Ok(r) => r,
@@ -173,4 +188,20 @@ fn test(){
     let parse_result = parse_payload_from_cert(&cert_der);
 
     assert_eq!(payload.as_bytes().to_vec(),parse_result);
+}
+
+#[test]
+fn test_pk_cert(){
+    let  (key_pair, key_pair_doc) = ring_key_gen_pcks_8();
+    let pub_key = key_pair.public_key().as_ref().to_vec();
+    let payload = "asdfsdfasdfsdfsf_test".to_string();
+
+    let cert_der= match gen_ecc_cert(payload.clone(), key_pair, pub_key.clone()) {
+        Ok(r) => r,
+        Err(e) => {
+            panic!("Error in gen_ecc_cert: {:?}", e);
+        }
+    };
+
+    let privkey = rustls::PrivateKey(key_pair_doc);
 }

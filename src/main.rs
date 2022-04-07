@@ -75,10 +75,15 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_secs(1));
         http_client();
     }else if proxy_type == 10u16 {
-        start_fake_key_server(9000);
+        start_fake_key_server(9000,None);
     }else if proxy_type == 11u16 {
         forward_server_nix(9000,"http://127.0.0.1:9000".to_string());
-        start_fake_key_server(9000);
+        let (certs,pri_keys)= nitro_ra::create_cert_and_prikey().unwrap();
+        let data = key_server_fake::SelfDefinedCertsKeys{
+            certs,
+            pri_keys,
+        };
+        start_fake_key_server(9000,Some(data));
     }else if proxy_type == 12u16 {
         std::thread::spawn(move || {
             instance_server(cid as u32);
