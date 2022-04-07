@@ -21,11 +21,12 @@ pub fn get_remote_attestation() -> Option<Response> {
 
     let public_key = ByteBuf::from("my super secret key");
     let hello = ByteBuf::from("hello, world!");
+    let nonce = ByteBuf::from("1");
 
     let request = Request::Attestation {
         public_key: Some(public_key),
         user_data: Some(hello),
-        nonce: Some(1),
+        nonce: Some(nonce),
     };
 
     let response = nsm_driver::nsm_process_request(nsm_fd, request);
