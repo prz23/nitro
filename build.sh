@@ -1,4 +1,4 @@
-cargo build --target=x86_64-unknown-linux-musl --release
+cargo build --target=x86_64-unknown-linux-musl --release --no-default-features
 
 cp ./target/x86_64-unknown-linux-musl/release/server-test .
 
