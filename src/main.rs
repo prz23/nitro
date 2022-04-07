@@ -285,7 +285,9 @@ impl rustls::ServerCertVerifier for ServerAuth {
     ) -> Result<rustls::ServerCertVerified, rustls::TLSError> {
         let to_verify = nitro_ra::parse_payload_from_cert(&_certs[0].0);
         pub const CA : &[u8] = include_bytes!("./root.pem");
+        #[cfg(all(feature = "openssl"))]
         let attestation_document = nitro_ra::AttestationDocument::authenticate(&to_verify,CA).unwrap();
+        
         Ok(rustls::ServerCertVerified::assertion())
     }
 }

@@ -18,4 +18,5 @@ webpki = "0.21"
 nitro-ra = { path = "./nitro-ra" }
 
 [features]
-default = ["nitro-ra/default"]
+default = ["nitro-ra/default","openssl"]
+openssl = []
