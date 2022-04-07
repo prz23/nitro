@@ -2,6 +2,8 @@ mod tls;
 mod nsm;
 
 pub use tls::{ring_key_gen_pcks_8, gen_ecc_cert, create_cert_and_prikey,parse_payload_from_cert};
+
+#[cfg(all(feature = "openssl"))]
 pub use nitro_enclave_attestation_document::AttestationDocument;
 
 use nsm_io::{Request, Response, AttestationDoc};

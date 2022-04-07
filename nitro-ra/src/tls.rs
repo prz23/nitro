@@ -189,19 +189,3 @@ fn test(){
 
     assert_eq!(payload.as_bytes().to_vec(),parse_result);
 }
-
-#[test]
-fn test_pk_cert(){
-    let  (key_pair, key_pair_doc) = ring_key_gen_pcks_8();
-    let pub_key = key_pair.public_key().as_ref().to_vec();
-    let payload = "asdfsdfasdfsdfsf_test".to_string();
-
-    let cert_der= match gen_ecc_cert(payload.clone(), key_pair, pub_key.clone()) {
-        Ok(r) => r,
-        Err(e) => {
-            panic!("Error in gen_ecc_cert: {:?}", e);
-        }
-    };
-
-    let privkey = rustls::PrivateKey(key_pair_doc);
-}
