@@ -88,7 +88,7 @@ fn main() {
     }else if proxy_type == 13u16 {
         println!("wait for 5 secs");
         std::thread::sleep(std::time::Duration::from_secs(5));
-        get_remote_attestation();
+        let response = get_remote_attestation();
     }
 }
 

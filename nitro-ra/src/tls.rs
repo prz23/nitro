@@ -120,3 +120,57 @@ pub fn gen_ecc_cert(payload: String,
 
     Ok(cert_der)
 }
+
+pub fn parse_payload_from_cert(cert_der: &[u8]) -> Vec<u8> {
+    // Search for Public Key prime256v1 OID
+    let prime256v1_oid = &[0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07];
+    let mut offset = cert_der.windows(prime256v1_oid.len()).position(|window| window == prime256v1_oid).unwrap();
+    offset += 11; // 10 + TAG (0x03)
+
+    // Obtain Public Key length
+    let mut len = cert_der[offset] as usize;
+    if len > 0x80 {
+        len = (cert_der[offset+1] as usize) * 0x100 + (cert_der[offset+2] as usize);
+        offset += 2;
+    }
+
+    // Obtain Public Key
+    offset += 1;
+    let pub_k = cert_der[offset+2..offset+len].to_vec(); // skip "00 04"
+
+    // Search for Netscape Comment OID
+    let ns_cmt_oid = &[0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x86, 0xF8, 0x42, 0x01, 0x0D];
+    let mut offset = cert_der.windows(ns_cmt_oid.len()).position(|window| window == ns_cmt_oid).unwrap();
+    offset += 12; // 11 + TAG (0x04)
+
+    // Obtain Netscape Comment length
+    let mut len = cert_der[offset] as usize;
+    if len > 0x80 {
+        len = (cert_der[offset+1] as usize) * 0x100 + (cert_der[offset+2] as usize);
+        offset += 2;
+    }
+
+    // Obtain Netscape Comment
+    offset += 1;
+    let payload = cert_der[offset..offset+len].to_vec();
+    payload
+
+}
+
+#[test]
+fn test(){
+    let  (key_pair, _key_pair_doc) = ring_key_gen_pcks_8();
+    let pub_key = key_pair.public_key().as_ref().to_vec();
+    let payload = "asdfsdfasdfsdfsf_test".to_string();
+
+    let cert_der= match gen_ecc_cert(payload.clone(), key_pair, pub_key.clone()) {
+        Ok(r) => r,
+        Err(e) => {
+            panic!("Error in gen_ecc_cert: {:?}", e);
+        }
+    };
+
+    let parse_result = parse_payload_from_cert(&cert_der);
+
+    assert_eq!(payload.as_bytes().to_vec(),parse_result);
+}

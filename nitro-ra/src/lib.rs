@@ -16,7 +16,7 @@ use std::time::SystemTime;
 
 // use nitro_enclave_attestation_document;
 
-pub fn get_remote_attestation() -> Response{
+pub fn get_remote_attestation() -> Option<Response> {
     let nsm_fd = nsm_driver::nsm_init();
 
     let public_key = ByteBuf::from("my super secret key");
@@ -29,11 +29,27 @@ pub fn get_remote_attestation() -> Response{
     };
 
     let response = nsm_driver::nsm_process_request(nsm_fd, request);
-    println!("{:?}", response);
+    println!("====response======");
+    println!("{:?}", to_vec(&response).unwrap());
+    println!("==========");
 
     nsm_driver::nsm_exit(nsm_fd);
 
-    response
+    let document = resolve_the_response_doc(response).unwrap();
+    println!("====document======");
+    println!("{:?}", to_vec(&document).unwrap());
+    println!("==========");
+
+    None
+}
+
+pub fn resolve_the_response_doc(response:Response) -> Result<Vec<u8>,String> {
+    let document = match response {
+        Response::Attestation { document } => { document },
+        _ => { return Err("the response is not Attestation".to_string()); },
+    };
+
+    Ok(document)
 }
 
 pub fn resolve_the_response(response:Response) -> Result<Vec<u8>,String> {
