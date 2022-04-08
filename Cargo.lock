@@ -806,6 +806,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "nitro"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "http_req",
+ "key-server-fake",
+ "nitro-ra",
+ "rocket",
+ "rustls 0.19.1",
+ "tempfile",
+ "vsock-proxy",
+ "vsock-sample",
+ "webpki 0.21.4",
+]
+
+[[package]]
 name = "nitro-enclave-attestation-document"
 version = "0.1.0"
 source = "git+https://github.com/prz23/nitro-enclave-attestation-document#053d9eaba01b17031b235ffe3f92aa653c732941"
@@ -1381,22 +1397,6 @@ dependencies = [
  "proc-macro2 1.0.36",
  "quote 1.0.17",
  "syn 1.0.90",
-]
-
-[[package]]
-name = "server-test"
-version = "0.1.0"
-dependencies = [
- "clap",
- "http_req",
- "key-server-fake",
- "nitro-ra",
- "rocket",
- "rustls 0.19.1",
- "tempfile",
- "vsock-proxy",
- "vsock-sample",
- "webpki 0.21.4",
 ]
 
 [[package]]
